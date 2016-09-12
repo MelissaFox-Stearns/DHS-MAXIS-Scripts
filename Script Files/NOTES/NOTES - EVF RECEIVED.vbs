@@ -1,3 +1,10 @@
+'*******************Need to finish the case note piece of this. The header needs to include the date received and the EVF status
+                   'Need to work on the Tikl checkbox- we decided it will be autochecked  
+
+
+
+
+
 'Required for statistical purposes==========================================================================================
 name_of_script = "NOTES - EVF RECEIVED.vbs"
 start_time = timer
@@ -38,43 +45,35 @@ IF IsEmpty(FuncLib_URL) = TRUE THEN	'Shouldn't load FuncLib if it already loaded
 END IF
 'END FUNCTIONS LIBRARY BLOCK================================================================================================
 
-BeginDialog case_number_dlg, 0, 0, 206, 75, "Enter a Case Number"
-  EditBox 70, 10, 70, 15, MAXIS_case_number
-  EditBox 65, 30, 30, 15, benefit_month
-  EditBox 155, 30, 30, 15, benefit_year
+
+
+BeginDialog EVF_received, 0, 0, 276, 210, "Employment Verification Form Received"
+  EditBox 80, 45, 100, 15, date_received
+  EditBox 80, 85, 100, 15, client
+  EditBox 80, 65, 100, 15, employer
+  DropListBox 80, 105, 50, 20, "Select one"+chr(9)+"yes"+chr(9)+"no", info
+  EditBox 200, 105, 60, 15, info_date
+  EditBox 80, 125, 100, 15, request_info
+  EditBox 80, 145, 180, 15, notes
+  EditBox 80, 165, 100, 15, worker_signature
   ButtonGroup ButtonPressed
-    OkButton 100, 55, 50, 15
-    CancelButton 150, 55, 50, 15
-  Text 10, 15, 50, 10, "Case Number"
-  Text 10, 35, 50, 10, "Benefit Month"
-  Text 105, 35, 45, 10, "Benefit Year"
+    OkButton 150, 190, 50, 15
+    CancelButton 215, 190, 50, 15
+  Text 5, 170, 60, 10, "Worker Signature:"
+  Text 5, 50, 65, 10, "Date EVF received:"
+  Text 140, 105, 60, 10, "Date Requested:"
+  Text 5, 130, 65, 10, "Info Requested via:"
+  Text 5, 110, 60, 10, "Addt'l Info Reqstd"
+  Text 5, 90, 65, 10, "Household Member"
+  Text 5, 70, 55, 10, "Employer name:"
+  Text 5, 150, 70, 10, "Action taken / Notes:"
+  ComboBox 80, 25, 170, 45, "Select One..."+chr(9)+"Signed by Client & Completed by Employer "+chr(9)+"Signed by Client"+chr(9)+"Completed by Employer", EVF_status_dropdown
+  Text 5, 30, 45, 10, "EVF Status "
+  CheckBox 5, 185, 80, 10, "Tikl for EVF Return ", Tikl_checkbox
+  Text 5, 10, 50, 10, "Case Number"
+  EditBox 80, 5, 70, 15, Case_number
 EndDialog
 
-BeginDialog EVF_received, 0, 0, 276, 200, "Employment Verification Form Received"
-  EditBox 140, 4, 60, 16, date_received
-  EditBox 54, 28, 72, 16, client
-  EditBox 190, 28, 70, 16, employer
-  DropListBox 144, 52, 50, 16, "Select one"+chr(9)+"yes"+chr(9)+"no", signed_by_client
-  DropListBox 144, 70, 50, 16, "Select one"+chr(9)+"yes"+chr(9)+"no", complete
-  DropListBox 92, 92, 48, 16, "Select one"+chr(9)+"yes"+chr(9)+"no", info
-  EditBox 206, 88, 60, 16, info_date
-  EditBox 82, 110, 100, 16, request_info
-  EditBox 82, 132, 180, 16, notes
-  EditBox 82, 154, 96, 16, worker_signature
-  ButtonGroup ButtonPressed
-    OkButton 28, 176, 50, 16
-    CancelButton 200, 176, 50, 16
-  Text 12, 158, 60, 10, "Worker Signature:"
-  Text 72, 10, 62, 10, "Date EVF received:"
-  Text 82, 56, 56, 10, "Signed by client:"
-  Text 146, 94, 56, 10, "Date Requested:"
-  Text 14, 114, 64, 10, "Info Requested via:"
-  Text 4, 94, 86, 10, "Additional Info Requested"
-  Text 18, 34, 30, 14, "MEMB #:"
-  Text 136, 32, 52, 12, "Employer name:"
-  Text 56, 72, 80, 10, "Completed by employer:"
-  Text 10, 138, 68, 10, "Action taken / Notes:"
-EndDialog
 
 'connects to BlueZone and brings it forward
 EMConnect ""
@@ -85,60 +84,43 @@ Call check_for_MAXIS(false)
 
 'grabs the case number and benefit month/year that is being worked on
 call MAXIS_case_number_finder(MAXIS_case_number)
-EMReadScreen at_self, 4, 2, 50
-IF at_self = "SELF" THEN 
-	EMReadScreen benefit_month, 2, 20, 43
-	IF len(benefit_month) <> 2 THEN benefit_month = "0" & benefit_month
-	EMReadScreen benefit_year, 2, 20, 46
-ELSE
-	CALL find_variable("Month: ", benefit_month, 2)
-	IF benefit_month <> "  " THEN CALL find_variable("Month: " & benefit_month & " ", benefit_year, 2)
-END IF
+
 
 ' >>>>> GATHERING & CONFIRMING THE MAXIS CASE NUMBER <<<<<
-DO
-	err_msg = ""
-	DIALOG case_number_dlg
-		IF ButtonPressed = 0 THEN stopscript
-		IF MAXIS_case_number = "" OR (MAXIS_case_number <> "" AND len(MAXIS_case_number) > 8) OR (MAXIS_case_number <> "" AND IsNumeric(MAXIS_case_number) = False) THEN err_msg = err_msg & vbCr & "* Please enter a valid case number."
-		IF err_msg <> "" THEN MsgBox "*** NOTICE!!! ***" & vbCr & err_msg & vbCr & vbCr & "Please resolve for the script to continue."		
-LOOP UNTIL err_msg = ""
+
 
 CALL check_for_MAXIS(False)
 
 'starts the EVF received case note dialog
 DO
-	err_msg = ""
-	'starts the EVF dialog
-	Dialog EVF_received
-	'asks if you want to cancel and if "yes" is selected sends StopScript
-	cancel_confirmation 
-	'checks that there is a date in the date received box
-	IF IsDate (date_received) = FALSE THEN err_msg = err_msg & vbCr & "You must enter a date in mm/dd/yy for date received."
-	'checks if the client name has been entered
-	IF client = "" THEN err_msg = err_msg & vbCr & "You must enter the MEMB #."
-	'checks if the employer name has been entered
-	IF employer = "" THEN err_msg = err_msg & vbCr & "You must enter the employers name."
-	'checks if signed by client was selected
-	IF Signed_by_client = "Select one" THEN err_msg = err_msg & vbCr & "You must select if signed by the client."
-	'checks if completed by employer was selected
-	IF complete = "Select one" THEN err_msg = err_msg & vbCr & "You must select if completed by the employer."
-	'checks if additional info was requested 
-	IF info = "Select one" THEN err_msg = err_msg & vbCr & "You must select if additional info was requested."
-	'checks that there is a info request date entered if the it was requested
-	IF info = "yes" and IsDate (info_date) = FALSE THEN err_msg = err_msg & vbCr & "You must enter a date in mm/dd/yy that additional info was requested."
-	'checks that there is a method of inquiry entered if additional info was requested
-	IF info = "yes" and request_info = "" THEN err_msg = err_msg & vbCr & "You must enter the method used to request additional info."
-	'checks that notes were entered				
-	IF notes = "" THEN err_msg = err_msg & vbCr & "You must enter action taken/notes."
-	'checks that the case note was signed
-	IF worker_signature = "" THEN err_msg = err_msg & vbCr & "You must sign your case note!" 
-	IF err_msg <> "" THEN MsgBox "*** NOTICE!!! ***" & vbCr & err_msg & vbCr & vbCr & "Please resolve for the script to continue."
-LOOP UNTIL err_msg = ""
+	Do
+		err_msg = ""
+		'starts the EVF dialog
+		Dialog EVF_received
+		'asks if you want to cancel and if "yes" is selected sends StopScript
+		cancel_confirmation 
+		'checks that there is a date in the date received box
+		If EVF_status_dropdown = "Select One..." THEN err_msg = err_msg & vbCr & "You must select the status of the EVF on the dropdown menu"
+		IF IsDate (date_received) = FALSE THEN err_msg = err_msg & vbCr & "You must enter a date in mm/dd/yy for date received."
+		'checks if the client name has been entered
+		IF client = "" THEN err_msg = err_msg & vbCr & "You must enter the MEMB #."
+		'checks if the employer name has been entered
+		IF employer = "" THEN err_msg = err_msg & vbCr & "You must enter the employers name."
+		'checks if completed by employer was selected
+		IF info = "Select one" THEN err_msg = err_msg & vbCr & "You must select if additional info was requested."
+		'checks that there is a info request date entered if the it was requested
+		IF info = "yes" and IsDate (info_date) = FALSE THEN err_msg = err_msg & vbCr & "You must enter a date in mm/dd/yy that additional info was requested."
+		'checks that there is a method of inquiry entered if additional info was requested
+		IF info = "yes" and request_info = "" THEN err_msg = err_msg & vbCr & "You must enter the method used to request additional info."
+		'checks that notes were entered				
+		IF notes = "" THEN err_msg = err_msg & vbCr & "You must enter action taken/notes."
+		'checks that the case note was signed
+		IF worker_signature = "" THEN err_msg = err_msg & vbCr & "You must sign your case note!" 
+		IF err_msg <> "" THEN MsgBox "*** NOTICE!!! ***" & vbCr & err_msg & vbCr & vbCr & "Please resolve for the script to continue."
+	LOOP UNTIL err_msg = ""
+	call check_for_password(are_we_passworded_out)  'Adding functionality for MAXIS v.6 Passworded Out issue'
+LOOP UNTIL are_we_passworded_out = false			
 
-'assigns a value to the EVF_status variable based on the value of the complete variable
-IF complete = "yes" THEN EVF_status = "COMPLETE"
-IF complete = "no" THEN EVF_status = "INCOMPLETE"
 
 'checks that the worker is in MAXIS - allows them to get in MAXIS without ending the script
 call check_for_MAXIS (false)
